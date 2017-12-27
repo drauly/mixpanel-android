@@ -14,10 +14,7 @@ import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.gcm.GoogleCloudMessaging;
 import com.google.android.gms.iid.InstanceID;
-import com.mixpanel.android.util.Base64Coder;
-import com.mixpanel.android.util.HttpService;
-import com.mixpanel.android.util.MPLog;
-import com.mixpanel.android.util.RemoteService;
+import com.mixpanel.android.util.*;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -43,12 +40,14 @@ import javax.net.ssl.SSLSocketFactory;
     /**
      * Do not call directly. You should call AnalyticsMessages.getInstance()
      */
-    /* package */ AnalyticsMessages(final Context context) {
+    /* package */ AnalyticsMessages(final Context context, MPUrlBuilder urlBuilder) {
         mContext = context;
         mConfig = getConfig(context);
         mWorker = createWorker();
+        mUrlBuilder = urlBuilder;
         getPoster().checkIsMixpanelBlocked();
     }
+
 
     protected Worker createWorker() {
         return new Worker();
@@ -60,19 +59,32 @@ import javax.net.ssl.SSLSocketFactory;
      *
      * @param messageContext should be the Main Activity of the application
      *     associated with these messages.
+     * @param endpoint mixpanel url
      */
-    public static AnalyticsMessages getInstance(final Context messageContext) {
+    public static AnalyticsMessages getInstance(final Context messageContext, String endpoint) {
         synchronized (sInstances) {
             final Context appContext = messageContext.getApplicationContext();
             AnalyticsMessages ret;
             if (! sInstances.containsKey(appContext)) {
-                ret = new AnalyticsMessages(appContext);
+                MPUrlBuilder urlBuilder = new MPUrlBuilder(MPConfig.getInstance(messageContext), endpoint);
+                ret = new AnalyticsMessages(appContext, urlBuilder);
                 sInstances.put(appContext, ret);
             } else {
                 ret = sInstances.get(appContext);
             }
             return ret;
         }
+    }
+
+    /**
+     * Use this to get an instance of AnalyticsMessages instead of creating one directly
+     * for yourself.
+     *
+     * @param messageContext should be the Main Activity of the application
+     *     associated with these messages.
+     */
+    public static AnalyticsMessages getInstance(final Context messageContext) {
+        return getInstance(messageContext, null);
     }
 
     public void eventsMessage(final EventDescription eventDescription) {
@@ -441,8 +453,8 @@ import javax.net.ssl.SSLSocketFactory;
                     return;
                 }
 
-                sendData(dbAdapter, token, MPDbAdapter.Table.EVENTS, mConfig.getEventsEndpoint());
-                sendData(dbAdapter, token, MPDbAdapter.Table.PEOPLE, mConfig.getPeopleEndpoint());
+                sendData(dbAdapter, token, MPDbAdapter.Table.EVENTS, mUrlBuilder.getEventEndpoint());
+                sendData(dbAdapter, token, MPDbAdapter.Table.PEOPLE, mUrlBuilder.getPeopleEndpoint());
             }
 
             private void sendData(MPDbAdapter dbAdapter, String token, MPDbAdapter.Table table, String url) {
@@ -677,6 +689,7 @@ import javax.net.ssl.SSLSocketFactory;
 
     // Used across thread boundaries
     private final Worker mWorker;
+    private final MPUrlBuilder mUrlBuilder;
     protected final Context mContext;
     protected final MPConfig mConfig;
 

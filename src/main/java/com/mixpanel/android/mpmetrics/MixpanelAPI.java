@@ -228,8 +228,16 @@ public class MixpanelAPI {
      * You shouldn't instantiate MixpanelAPI objects directly.
      * Use MixpanelAPI.getInstance to get an instance.
      */
+    MixpanelAPI(Context context, Future<SharedPreferences> referrerPreferences, String token, String endPoint) {
+        this(context, referrerPreferences, token, MPConfig.getInstance(context), endPoint);
+    }
+
+    /**
+     * You shouldn't instantiate MixpanelAPI objects directly.
+     * Use MixpanelAPI.getInstance to get an instance.
+     */
     MixpanelAPI(Context context, Future<SharedPreferences> referrerPreferences, String token) {
-        this(context, referrerPreferences, token, MPConfig.getInstance(context));
+        this(context, referrerPreferences, token, MPConfig.getInstance(context), MPConfig.getInstance(context).getEventsEndpoint());
     }
 
     /**
@@ -237,10 +245,21 @@ public class MixpanelAPI {
      * Use MixpanelAPI.getInstance to get an instance.
      */
     MixpanelAPI(Context context, Future<SharedPreferences> referrerPreferences, String token, MPConfig config) {
+        this(context, referrerPreferences, token, config, config.getEventsEndpoint());
+    }
+
+
+    /**
+     * You shouldn't instantiate MixpanelAPI objects directly.
+     * Use MixpanelAPI.getInstance to get an instance.
+     */
+    MixpanelAPI(Context context, Future<SharedPreferences> referrerPreferences, String token, MPConfig config, String endPoint) {
         mContext = context;
         mToken = token;
         mPeople = new PeopleImpl();
         mConfig = config;
+        mEndpoint = endPoint;
+
 
         final Map<String, String> deviceInfo = new HashMap<String, String>();
         deviceInfo.put("$android_lib_version", MPConfig.VERSION);
@@ -351,8 +370,8 @@ public class MixpanelAPI {
      *     in the settings dialog.
      * @return an instance of MixpanelAPI associated with your project
      */
-    public static MixpanelAPI getInstance(Context context, String token) {
-        if (null == token || null == context) {
+    public static MixpanelAPI getInstance(Context context, String token, String endpoint) {
+        if (null == token || null == context || null == endpoint) {
             return null;
         }
         synchronized (sInstanceMap) {
@@ -370,7 +389,7 @@ public class MixpanelAPI {
 
             MixpanelAPI instance = instances.get(appContext);
             if (null == instance && ConfigurationChecker.checkBasicConfiguration(appContext)) {
-                instance = new MixpanelAPI(appContext, sReferrerPrefs, token);
+                instance = new MixpanelAPI(appContext, sReferrerPrefs, token, endpoint);
                 registerAppLinksListeners(context, instance);
                 instances.put(appContext, instance);
             }
@@ -379,6 +398,38 @@ public class MixpanelAPI {
 
             return instance;
         }
+    }
+
+
+    /**
+     * Get the instance of MixpanelAPI associated with your Mixpanel project token.
+     *
+     * <p>Use getInstance to get a reference to a shared
+     * instance of MixpanelAPI you can use to send events
+     * and People Analytics updates to Mixpanel.</p>
+     * <p>getInstance is thread safe, but the returned instance is not,
+     * and may be shared with other callers of getInstance.
+     * The best practice is to call getInstance, and use the returned MixpanelAPI,
+     * object from a single thread (probably the main UI thread of your application).</p>
+     * <p>If you do choose to track events from multiple threads in your application,
+     * you should synchronize your calls on the instance itself, like so:</p>
+     * <pre>
+     * {@code
+     * MixpanelAPI instance = MixpanelAPI.getInstance(context, token);
+     * synchronized(instance) { // Only necessary if the instance will be used in multiple threads.
+     *     instance.track(...)
+     * }
+     * }
+     * </pre>
+     *
+     * @param context The application context you are tracking
+     * @param token Your Mixpanel project token. You can get your project token on the Mixpanel web site,
+     *     in the settings dialog.
+     * @return an instance of MixpanelAPI associated with your project
+     */
+    public static MixpanelAPI getInstance(Context context, String token) {
+        String endPoint = MPConfig.getInstance(context).getEventsEndpoint();
+        return getInstance(context, token, endPoint);
     }
 
     /**
@@ -1345,7 +1396,7 @@ public class MixpanelAPI {
     // non-test client code.
 
     /* package */ AnalyticsMessages getAnalyticsMessages() {
-        return AnalyticsMessages.getInstance(mContext);
+        return AnalyticsMessages.getInstance(mContext, mEndpoint);
     }
 
     /* package */ PersistentIdentity getPersistentIdentity(final Context context, Future<SharedPreferences> referrerPreferences, final String token) {
@@ -2194,6 +2245,7 @@ public class MixpanelAPI {
     private final AnalyticsMessages mMessages;
     private final MPConfig mConfig;
     private final String mToken;
+    private final String mEndpoint;
     private final PeopleImpl mPeople;
     private final UpdatesFromMixpanel mUpdatesFromMixpanel;
     private final PersistentIdentity mPersistentIdentity;
