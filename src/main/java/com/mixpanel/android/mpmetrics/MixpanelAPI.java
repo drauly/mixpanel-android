@@ -237,7 +237,7 @@ public class MixpanelAPI {
      * Use MixpanelAPI.getInstance to get an instance.
      */
     MixpanelAPI(Context context, Future<SharedPreferences> referrerPreferences, String token) {
-        this(context, referrerPreferences, token, MPConfig.getInstance(context), MPConfig.getInstance(context).getEventsEndpoint());
+        this(context, referrerPreferences, token, MPConfig.getInstance(context), null);
     }
 
     /**
@@ -245,7 +245,7 @@ public class MixpanelAPI {
      * Use MixpanelAPI.getInstance to get an instance.
      */
     MixpanelAPI(Context context, Future<SharedPreferences> referrerPreferences, String token, MPConfig config) {
-        this(context, referrerPreferences, token, config, config.getEventsEndpoint());
+        this(context, referrerPreferences, token, config, null);
     }
 
 
@@ -371,7 +371,7 @@ public class MixpanelAPI {
      * @return an instance of MixpanelAPI associated with your project
      */
     public static MixpanelAPI getInstance(Context context, String token, String endpoint) {
-        if (null == token || null == context || null == endpoint) {
+        if (null == token || null == context) {
             return null;
         }
         synchronized (sInstanceMap) {
@@ -381,10 +381,12 @@ public class MixpanelAPI {
                 sReferrerPrefs = sPrefsLoader.loadPreferences(context, MPConfig.REFERRER_PREFS_NAME, null);
             }
 
-            Map <Context, MixpanelAPI> instances = sInstanceMap.get(token);
+            String instanceKey = token + enpoint;
+
+            Map <Context, MixpanelAPI> instances = sInstanceMap.get(instanceKey);
             if (null == instances) {
                 instances = new HashMap<Context, MixpanelAPI>();
-                sInstanceMap.put(token, instances);
+                sInstanceMap.put(instanceKey, instances);
             }
 
             MixpanelAPI instance = instances.get(appContext);
@@ -428,8 +430,7 @@ public class MixpanelAPI {
      * @return an instance of MixpanelAPI associated with your project
      */
     public static MixpanelAPI getInstance(Context context, String token) {
-        String endPoint = MPConfig.getInstance(context).getEventsEndpoint();
-        return getInstance(context, token, endPoint);
+        return getInstance(context, token, endPoint, null);
     }
 
     /**
