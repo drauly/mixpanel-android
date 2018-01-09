@@ -381,7 +381,7 @@ public class MixpanelAPI {
                 sReferrerPrefs = sPrefsLoader.loadPreferences(context, MPConfig.REFERRER_PREFS_NAME, null);
             }
 
-            String instanceKey = token + enpoint;
+            String instanceKey = token + endpoint;
 
             Map <Context, MixpanelAPI> instances = sInstanceMap.get(instanceKey);
             if (null == instances) {
@@ -430,7 +430,7 @@ public class MixpanelAPI {
      * @return an instance of MixpanelAPI associated with your project
      */
     public static MixpanelAPI getInstance(Context context, String token) {
-        return getInstance(context, token, endPoint, null);
+        return getInstance(context, token, null);
     }
 
     /**

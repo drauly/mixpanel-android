@@ -62,17 +62,26 @@ import javax.net.ssl.SSLSocketFactory;
      * @param endpoint mixpanel url
      */
     public static AnalyticsMessages getInstance(final Context messageContext, String endpoint) {
-        synchronized (sInstances) {
+
+        synchronized (sInstanceMap) {
             final Context appContext = messageContext.getApplicationContext();
-            AnalyticsMessages ret;
-            if (! sInstances.containsKey(appContext)) {
-                MPUrlBuilder urlBuilder = new MPUrlBuilder(MPConfig.getInstance(messageContext), endpoint);
-                ret = new AnalyticsMessages(appContext, urlBuilder);
-                sInstances.put(appContext, ret);
-            } else {
-                ret = sInstances.get(appContext);
+
+            String instanceKey = endpoint == null ? "" : endpoint;
+
+            Map <Context, AnalyticsMessages> instances = sInstanceMap.get(instanceKey);
+            if (null == instances) {
+                instances = new HashMap<Context, AnalyticsMessages>();
+                sInstanceMap.put(instanceKey, instances);
             }
-            return ret;
+
+            AnalyticsMessages instance = instances.get(appContext);
+            if (null == instance) {
+                MPUrlBuilder urlBuilder = new MPUrlBuilder(MPConfig.getInstance(messageContext), endpoint);
+                instance = new AnalyticsMessages(appContext, urlBuilder);
+                instances.put(appContext, instance);
+            }
+
+            return instance;
         }
     }
 
@@ -703,6 +712,6 @@ import javax.net.ssl.SSLSocketFactory;
 
     private static final String LOGTAG = "MixpanelAPI.Messages";
 
-    private static final Map<Context, AnalyticsMessages> sInstances = new HashMap<Context, AnalyticsMessages>();
-
+    // Maps each token to a singleton MixpanelAPI instance
+    private static final Map<String, Map<Context, AnalyticsMessages>> sInstanceMap = new HashMap<String, Map<Context, AnalyticsMessages>>();
 }
